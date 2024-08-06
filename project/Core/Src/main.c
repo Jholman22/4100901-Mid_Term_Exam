@@ -43,7 +43,17 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint32_t left_toggles = 0;
+uint8_t BANDERALEFT1=0;
+uint8_t BANDERALEFT2=0;
+uint8_t BANDERARIGHT1=0;
+uint8_t BANDERARIGHT2=0;
+uint32_t buttonPressCount = 0;
+uint32_t button2PressCount = 0;
+uint32_t button3PressCount = 0;
+uint32_t lastButtonPressTime = 0;
+uint32_t debounceTime = 200; // Tiempo de debounce en ms
+uint32_t doublePressTime = 500; // Tiempo máximo entre dos pulsaciones para considerar una doble pulsación
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,7 +66,73 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void turn_signal_left(void) //FUNCION ENCARGADA DEL ENCENDIDO Y APAGADO DEL LEDLEFT
+{
+	static uint32_t hearbeat_tick = 0;
+	if (hearbeat_tick < HAL_GetTick()){
+		hearbeat_tick = HAL_GetTick() + 500; //500 milisegundos para tener una frecuencia de 2Hz
+		HAL_GPIO_TogglePin(LED_LEFT_GPIO_Port, LED_LEFT_Pin);
+	}}
+void turn_signal_right(void) //FUNCION ENCARGADA DEL ENCENDIDO Y APAGADO DEL LEDRIGHT
+{
+	static uint32_t hearbeat_tick = 0;
+	if (hearbeat_tick < HAL_GetTick()){
+		hearbeat_tick = HAL_GetTick() + 500;
+		HAL_GPIO_TogglePin(LED_RIGHT_GPIO_Port, LED_RIGHT_Pin);
+	}}
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == BUTTON_LEFT_Pin) {
+         uint32_t currentTime = HAL_GetTick();
+        if (currentTime - lastButtonPressTime > debounceTime) {
+            // Detectar número de pulsaciones seguidas
+            if (currentTime - lastButtonPressTime < doublePressTime) {
+                buttonPressCount++;
+            } else {
+                buttonPressCount = 1; // Reiniciar si la pulsación no es seguida
+            }
+            lastButtonPressTime = currentTime;
+
+            // Manejo de acciones según el número de pulsaciones
+            if (buttonPressCount == 1) { //UNA PULSACION
+            	BANDERALEFT1=1;
+            	HAL_UART_Transmit(&huart2, "LEFT\r\n", 6, 10);
+}
+
+             if (buttonPressCount == 2) { //UNA PULSACION
+            	BANDERALEFT2=1;
+            	HAL_UART_Transmit(&huart2, "LEFT\r\n", 6, 10);
+
+            }
+        }
+    }
+
+    if (GPIO_Pin == BUTTON_RIGHT_Pin) {
+        uint32_t currentTime = HAL_GetTick();
+        if (currentTime - lastButtonPressTime > debounceTime) {
+            // Detectar número de pulsaciones seguidas
+            if (currentTime - lastButtonPressTime < doublePressTime) {
+                buttonPressCount++;
+            } else {
+                buttonPressCount = 1; // Reiniciar si la pulsación no es seguida
+            }
+            lastButtonPressTime = currentTime;
+
+            // Manejo de acciones según el número de pulsaciones
+            if (buttonPressCount == 1) { //UNA PULSACION
+
+            	HAL_UART_Transmit(&huart2, "RIGHT\r\n", 7, 10);
+            	BANDERARIGHT1=1;
+
+            } else if (buttonPressCount == 2) { //DOS PULSACIONES
+
+            	HAL_UART_Transmit(&huart2, "RIGHT\r\n", 7, 10);
+            	BANDERARIGHT2=1;
+
+            }
+        }
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,12 +172,20 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+//    /* USER CODE END WHILE */
+	  if(BANDERALEFT1!=0){
+		  turn_signal_left();
+	  }
+
+	  if(BANDERARIGHT1!=0){
+		  turn_signal_right();
+
+	  }
 
     /* USER CODE BEGIN 3 */
-  }
+
   /* USER CODE END 3 */
-}
+}}
 
 /**
   * @brief System Clock Configuration
